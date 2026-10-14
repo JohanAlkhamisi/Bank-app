@@ -94,8 +94,9 @@ namespace BankApp
                     Console.WriteLine("2. Lås upp användare");
                 }
                 else
-                { 
-                    // need to add customer: menu text here 
+                {
+                    Console.WriteLine("1. Mina konton");
+                    Console.WriteLine("2. Öppna konto");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -126,7 +127,13 @@ namespace BankApp
                 {
                     switch (choice)
                     {
-                        // NEED to add customer: cases here 
+                        case "1":
+                            ShowAccounts(user);
+                            break;
+
+                        case "2":
+                            OpenAccount(user);
+                            break;
 
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
@@ -183,6 +190,46 @@ namespace BankApp
             else
             {
                 Console.WriteLine("Anändaren finns inte eller du är inte adminstratör.");
+            }
+
+        }
+
+        //here i print the accounts returned for the logged in user
+        private void ShowAccount(User user)
+        {
+            List<BankAccount> accounts = bank.GetAccount(user);
+
+            if (accounts.Count == 0)
+            {
+                Console.WriteLine("Du har inga konton.");
+
+            }
+
+            foreach (BankAccount account in accounts)
+            {
+                Console.WriteLine($"{account.Number} | {account.Name} | {account.Balance} | {account.Currency}");
+
+            }
+
+        }
+
+        // here i read the account details and ask bank to create the acoutn 
+        private void OpenAccount(User user)
+        {
+            string name = input.ReadText("Kontonamn: ");
+            Currency currency = input.ReadCurrency();
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+            if (bank.OpenAccount(user, name, currency) == true)
+            {
+                Console.WriteLine("Kontot skapades. Du hittar det under Mina konton");
+            }
+            else
+            {
+                Console.WriteLine("Kontot behöver ett namn.");
             }
 
         }

@@ -9,14 +9,67 @@ namespace Bank_app
 
         // here i create a list that will have users
         private List<User> users = new List<User>();
+        private List<BankAccount> accounts = new List<BankAccount>();
 
-
-        // here i create the demo users
+        // here i create the demo users and their starting values
         public Bank()
         {
             users.Add(new User(1, "admin", "Admin123", true));
             users.Add(new User(2, "johan", "johan123", false));
             users.Add(new User(3, "sara", "Sara123", false));
+
+            accounts.Add(new BankAccount(1001, 2, "Lönekonto", Currency.SEK, 10000));
+            accounts.Add(new BankAccount(1002, 3, "Lönekonto", Currency.SEK, 5000));
+            accounts.Add(new BankAccount(1003, 2, "Extra", Currency.SEK, 0));
+
+
+        }
+
+        //here i collect only the user account
+        public List<BankAccount> GetAccounts(User user)
+        {
+            List<BankAccount> result = new List<BankAccount>();
+
+            foreach (BankAccount account in accounts)
+            {
+                if (account.OwnerId == user.Id)
+                {
+                    result.Add(account);
+                }
+            }
+            return result;
+        }
+
+        // here i search by account number and return its list position 
+        public int FindAccountIndex(int accountNumber)
+        {
+            for (int i = 0; i < accounts.Count; i++)
+            {
+                if (accounts[i].Number == accountNumber)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // Call this after checking that the index is not minus one
+        public BankAccount GetAccount(int accountIndex)
+        {
+            return accounts[accountIndex];
+        }
+
+        //here i create a empty account owned by the logged in user
+        public bool OpenAccount(User user, string name, Currency currency)
+        {
+            if (HasText(name) == false)
+            {
+                return false;
+            }
+            BankAccount account = new BankAccount(1001 + accounts.count, user.Id, name, currency,0)
+
+                accounts.Add(account);
+            return true;
 
         }
 
