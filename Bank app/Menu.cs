@@ -92,11 +92,13 @@ namespace BankApp
                 {
                     Console.WriteLine("1. Skapa användare");
                     Console.WriteLine("2. Lås upp användare");
+                    Console.WriteLine("4. Behandla nästa simulerade kvart");
                 }
                 else
                 {
                     Console.WriteLine("1. Mina konton");
                     Console.WriteLine("2. Öppna konto");
+                    Console.WriteLine("3. Överför pengar");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -118,6 +120,9 @@ namespace BankApp
                         case "2":
                             UnlockUser(user);
                             break;
+                        case "4":
+                            ProcessNextQuarter(user);
+                            break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
                             break;
@@ -133,6 +138,9 @@ namespace BankApp
 
                         case "2":
                             OpenAccount(user);
+                            break;
+                        case "3":
+                            Transfer(user);
                             break;
 
                         default:
@@ -197,18 +205,16 @@ namespace BankApp
         //here i print the accounts returned for the logged in user
         private void ShowAccount(User user)
         {
-            List<BankAccount> accounts = bank.GetAccount(user);
+            List<BankAccount> accounts = bank.GetAccounts(user);
 
             if (accounts.Count == 0)
             {
                 Console.WriteLine("Du har inga konton.");
-
             }
 
             foreach (BankAccount account in accounts)
             {
-                Console.WriteLine($"{account.Number} | {account.Name} | {account.Balance} | {account.Currency}");
-
+                Console.WriteLine($"{account.Number} | {account.Name} | Saldo {account.Balance} {account.Currency} | Tillgängligt {bank.GetAvailableBalance(account)}");
             }
 
         }
@@ -233,6 +239,46 @@ namespace BankApp
             }
 
         }
+
+        private void Transfer(User user)
+        {
+            ShowAccounts(user);
+
+            int from = input.ReadNumber("Från ditt kontonummer: ");
+            int to = input.ReadNumber("Till kontonummer: ");
+
+            decimal amount = input.ReadDecimal(
+                "Belopp i avsändarkontots valuta: ");
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+
+            if (bank.Transfer(user, from, to, amount) == true)
+            {
+                Console.WriteLine(
+                    $"Överföringen väntar till bankminut {bank.GetBankMinute() + 15}.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "Kontrollera konton, ägare, belopp, tillgängligt saldo och valutakurser.");
+            }
+        }
+
+        // This advances simulated time. It does not wait fifteen real minutes.
+        private void ProcessNextQuarter(User admin)
+        {
+            int completed = bank.ProcessNextQuarter(admin);
+
+            Console.WriteLine(
+                $"Bankens simulerade tid: minut {bank.GetBankMinute()}, dag {bank.GetBankDay()}.");
+
+            Console.WriteLine(
+                $"Genomförda transaktioner: {completed}.");
+        }
+
 
 
 

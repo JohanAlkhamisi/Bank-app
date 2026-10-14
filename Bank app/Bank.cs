@@ -10,6 +10,9 @@ namespace Bank_app
         // here i create a list that will have users
         private List<User> users = new List<User>();
         private List<BankAccount> accounts = new List<BankAccount>();
+        private Queue<Transaction> waiting = new Queue<Transaction>();
+        private List<Transaction> transactions = new List<Transaction>();
+        private int bankMinute = 0;
 
         // here i create the demo users and their starting values
         public Bank()
@@ -174,6 +177,204 @@ namespace Bank_app
             users.Add(new User(users.Count + 1, username, password, false));
             return true;
         }
+
+        // The bank's clock moves forward 15 minutes when the admin runs the transfers.
+        public int GetBankMinute()
+        {
+            return bankMinute;
+        }
+
+        public int GetBankDay()
+        {
+            return bankMinute / 1440 + 1;
+        }
+
+        // here i validate money using comparison 
+        public bool AmountIsValid(decimal amount)
+        {
+            if (amount <= 0 || amount > 100000)
+            {
+                return false;
+            }
+            if ((amount * 100) % 1 != 0)
+            {
+                return false;
+            }
+            return true;
+        
+
+
+
+        }
+
+        public decimal RoundMoney(decimal amount)
+        {
+            decimal cents = amount * 100;
+            decimal fraction = cents % 1;
+
+            cents = cents - fraction;
+
+            if (fraction >= 0.5m)
+            {
+                cents = cents + 1;
+            }
+            return cents / 100;
+
+        }
+
+        // waiting outgoing transfer reserv money that cannot be spent again 
+        public decimal GetAvailableBalance(BankAccount account)
+        {
+            decimal available = account.Balance;
+
+            foreach (Transaction transaction in waiting)
+            {
+                if (transaction.FromAccount == account.Number)
+                {
+                    available = available + transaction.Amount;
+                }
+            }
+            return available;
+        }
+
+        public decimal ConvertMoney(
+    decimal amount,
+    Currency from,
+    Currency to)
+        {
+            if (from == to)
+            {
+                return amount;
+            }
+
+            return -1;
+        }
+
+        // Here I check both accounts before putting a transfer in the queue.
+        public bool Transfer(
+            User user,
+            int fromNumber,
+            int toNumber,
+            decimal amount)
+        {
+            if (AmountIsValid(amount) == false || fromNumber == toNumber)
+            {
+                return false;
+            }
+
+            int fromIndex = FindAccountIndex(fromNumber);
+            int toIndex = FindAccountIndex(toNumber);
+
+            if (fromIndex == -1 || toIndex == -1)
+            {
+                return false;
+            }
+
+            BankAccount from = accounts[fromIndex];
+            BankAccount to = accounts[toIndex];
+
+            if (from.OwnerId != user.Id
+                || amount > GetAvailableBalance(from))
+            {
+                return false;
+            }
+
+            decimal received = ConvertMoney(
+                amount,
+                from.Currency,
+                to.Currency);
+
+            decimal amountInSek = ConvertMoney(
+                amount,
+                from.Currency,
+                Currency.SEK);
+
+            if (received <= 0 || amountInSek <= 0)
+            {
+                return false;
+            }
+
+            Transaction transaction = new Transaction(
+                transactions.Count + 1,
+                user.Id,
+                fromNumber,
+                toNumber,
+                amount,
+                received,
+                amountInSek,
+                TransactionType.Transfer,
+                bankMinute,
+                bankMinute + 15);
+
+            waiting.Enqueue(transaction);
+            transactions.Add(transaction);
+
+            return true;
+        }
+
+        // Admin advances simulated time and processes the requests that are due.
+        public int ProcessNextQuarter(User admin)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return -1;
+            }
+
+            bankMinute = bankMinute + 15;
+
+            int completed = 0;
+
+            while (waiting.Count > 0)
+            {
+                Transaction transaction = waiting.Peek();
+
+                if (transaction.ExecuteMinute > bankMinute)
+                {
+                    break;
+                }
+
+                transaction = waiting.Dequeue();
+
+                int toIndex = FindAccountIndex(transaction.ToAccount);
+
+                if (toIndex == -1)
+                {
+                    transaction.Status = TransactionStatus.Failed;
+                    continue;
+                }
+
+                BankAccount to = accounts[toIndex];
+
+                if (transaction.FromAccount != 0)
+                {
+                    int fromIndex = FindAccountIndex(
+                        transaction.FromAccount);
+
+                    if (fromIndex == -1)
+                    {
+                        transaction.Status = TransactionStatus.Failed;
+                        continue;
+                    }
+
+                    BankAccount from = accounts[fromIndex];
+
+                    if (from.Withdraw(transaction.Amount) == false)
+                    {
+                        transaction.Status = TransactionStatus.Failed;
+                        continue;
+                    }
+                }
+
+                to.Deposit(transaction.ReceivedAmount);
+
+                transaction.Status = TransactionStatus.Completed;
+                completed++;
+            }
+
+            return completed;
+        }
+
+
 
     }
 }
