@@ -4,7 +4,6 @@
     {
         public void Start()
         {
-            // Här visar jag första menyn tills användaren avslutar.
             while (true)
             {
                 Console.WriteLine("------------------------------");
@@ -14,7 +13,6 @@
 
                 string? choice = Console.ReadLine();
 
-                // Här avslutar jag om det inte finns mer inmatning.
                 if (choice == null)
                 {
                     return;
@@ -27,8 +25,7 @@
                         return;
 
                     default:
-                        Console.WriteLine(
-                            "Ogiltigt val. Skriv 0 för att avsluta.");
+                        Console.WriteLine("Ogiltigt val. Skriv 0 för att avsluta.");
                         break;
                 }
 
