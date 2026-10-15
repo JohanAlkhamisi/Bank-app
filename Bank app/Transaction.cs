@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Bank_app
 {
-    // here i add the same transaction to the queue and the history 
+    // Here I keep the details of a transfer, deposit or loan payment.
     public class Transaction
     {
         public int Id { get; set; }
@@ -19,11 +19,11 @@ namespace Bank_app
         public int ExecuteMinute { get; set; }
         public TransactionType Type { get; set; }
         public TransactionStatus Status { get; set; }
-        
-        // This connects a loan payout to its loan.
+
+        // Here I save the loan's number so I can find it when the money is paid out.
         public int LoanId { get; set; }
 
-        // here i use minutes to keep track of time in the bank sim
+        // Here I save the payment details and its time in the bank's simulated minutes.
         public Transaction(int id, int userId, int fromAccount,int toAccount,decimal amount, decimal receivedAmount, decimal amountInSek, TransactionType type, int createdMinute, int executeMinute)
         {
             Id = id;

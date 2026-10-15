@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Bank_app
 {
-    // here i read input 
+    // Here I keep the methods that read what the user types. 
 
     internal class Input
     {
@@ -17,7 +17,7 @@ namespace Bank_app
             EndOfInput = false;
         }
 
-        // here i read a line and notice when input has ended.
+        // Here I read the user's text and check if there is no more input.
         public string ReadText(string prompt)
         {
             Console.WriteLine(prompt);
@@ -36,7 +36,7 @@ namespace Bank_app
         }
 
 
-        // here i reapeat the question until the text is a whole number 
+        // Here I keep asking until the user enters a whole number. 
 
         public int ReadNumber(string prompt)
         {
@@ -72,7 +72,7 @@ namespace Bank_app
         }
 
 
-        // parse uses the computer number format. on swedish windows decimal amount is usually written 100,50
+        // Here I read a decimal number using the computer's number format. On Swedish Windows, 100,50 usually works.
         public decimal ReadDecimal(string prompt)
         {
             decimal number = 0;
@@ -103,7 +103,7 @@ namespace Bank_app
 
         }
 
-        // here i translate the choosen number into an enum value
+        // Here I turn the user's choice of 1, 2 or 3 into SEK, EUR or USD.
         public Currency ReadCurrency()
         {
             Currency currency = Currency.SEK;

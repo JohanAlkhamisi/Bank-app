@@ -10,7 +10,7 @@ namespace Bank_app
         private Input input = new Input();
 
 
-        // here i show the start menu until the user exits.
+        // Here I show the start menu until the user chooses to exit.
         public void Start()
         {
             ShowLogo();
@@ -41,7 +41,7 @@ namespace Bank_app
 
         }
 
-        // the logo
+        // Here I print the bank logo.
         private void ShowLogo()
         {
             Console.WriteLine(" ________________________ ");
@@ -51,9 +51,7 @@ namespace Bank_app
         }
 
 
-        // here i use the returned list position to get the user
-
-
+        // Here I read the username and password and open the menu if login works.
 
         private void Login()
         {
@@ -82,7 +80,7 @@ namespace Bank_app
 
         }
 
-        // here i show the choices for logged in user
+        // Here I show the menu for the user who has logged in.
         private void ShowUserMenu(User user)
         {
             while (input.EndOfInput == false)
@@ -194,7 +192,7 @@ namespace Bank_app
 
         }
 
-        // here i read the credentials and show the result returned by bank
+        // Here I ask for a new username and password and show if the user was created.
         private void CreateUser(User admin)
         {
             string username = input.ReadText("Nytt användarnamn: ");
@@ -242,7 +240,7 @@ namespace Bank_app
 
         }
 
-        //here i print the accounts returned for the logged in user
+        // Here I show the user's accounts, balances and money they can still use.
         private void ShowAccounts(User user)
         {
             List<BankAccount> accounts = bank.GetAccounts(user);
@@ -259,7 +257,7 @@ namespace Bank_app
 
         }
 
-        // here i read the account details and ask bank to create the acoutn 
+        // Here I ask for the new account's name and currency. 
         private void OpenAccount(User user)
         {
             string name = input.ReadText("Kontonamn: ");
@@ -307,7 +305,7 @@ namespace Bank_app
             }
         }
 
-        // This advances simulated time. It does not wait fifteen real minutes.
+        // Here I move the bank's simulated clock forward by 15 minutes and show how many payments ran.
         private void ProcessNextQuarter(User admin)
         {
             int completed = bank.ProcessNextQuarter(admin);
@@ -320,7 +318,7 @@ namespace Bank_app
         }
 
 
-        // Here I read the details for a savings account.
+        // Here I ask for a name and currency for the new savings account
         private void OpenSavingsAccount(User user)
         {
             string name = input.ReadText("Sparkontots namn: ");
@@ -341,7 +339,7 @@ namespace Bank_app
             }
         }
 
-        // Here I calculate interest before asking for confirmation.
+        // Here I show one year's interest before asking if the user wants to deposit the money.
         private void Deposit(User user)
         {
             ShowAccounts(user);
@@ -381,7 +379,7 @@ namespace Bank_app
                 }
             }
         }
-        // Here I show the allowance and interest before confirmation.
+        // Here I show how much the user can borrow and the interest before they say yes to the loan.
         private void RequestLoan(User user)
         {
             decimal limit = bank.GetLoanLimit(user);
@@ -432,7 +430,7 @@ namespace Bank_app
             }
         }
 
-        // Here I show each loan using a loop and if-else.
+        // Here I show the user's loans, interest rates and if the money has been paid out.
         private void ShowLoans(User user)
         {
             List<Loan> loans = bank.GetLoans(user);
@@ -459,7 +457,7 @@ namespace Bank_app
         }
 
 
-        // Here I print the history using normal switches.
+        // Here I show each payment and whether it is waiting, finished or failed.
         private void ShowHistory(User user)
         {
             List<Transaction> history = bank.GetHistory(user);

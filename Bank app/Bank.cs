@@ -8,7 +8,7 @@ namespace Bank_app
     public class Bank
     {
 
-        // here i create a list that will have users
+        // Here I keep the users, accounts, transfers and loans while the app is running
         private List<User> users = new List<User>();
         private List<BankAccount> accounts = new List<BankAccount>();
         private Queue<Transaction> waiting = new Queue<Transaction>();
@@ -16,10 +16,10 @@ namespace Bank_app
         private List<Loan> loans = new List<Loan>();
         private int bankMinute = 0;
 
-        private Dictionary<CreditRating, decimal> loanPercents =
-    new Dictionary<CreditRating, decimal>();
+        private Dictionary<CreditRating, decimal> loanPercents = new Dictionary<CreditRating, decimal>();
+        private Dictionary<Currency, decimal> exchangeRates = new Dictionary<Currency, decimal>();
 
-        // here i create the demo users and their starting values
+        // Here I add the test users and their first accounts.
         public Bank()
         {
             users.Add(new User(1, "admin", "Admin123", true));
@@ -42,7 +42,7 @@ namespace Bank_app
 
         }
 
-        //here i collect only the user account
+        // Here I make a list of this user's accounts.
         public List<BankAccount> GetAccounts(User user)
         {
             List<BankAccount> result = new List<BankAccount>();
@@ -57,7 +57,7 @@ namespace Bank_app
             return result;
         }
 
-        // here i search by account number and return its list position 
+        // Here I find the account's place in the list. I return -1 if it is missing. 
         public int FindAccountIndex(int accountNumber)
         {
             for (int i = 0; i < accounts.Count; i++)
@@ -70,13 +70,13 @@ namespace Bank_app
             return -1;
         }
 
-        // Call this after checking that the index is not minus one
+        // Here I get the account from its place in the list. The place must be checked first.
         public BankAccount GetAccount(int accountIndex)
         {
             return accounts[accountIndex];
         }
 
-        //here i create a empty account owned by the logged in user
+        // Here I create an account with a starting balance of 0 for the logged-in user.
         public bool OpenAccount(User user, string name, Currency currency)
         {
             if (HasText(name) == false)
@@ -90,7 +90,7 @@ namespace Bank_app
 
         }
 
-        //here i return the matching users position in the list and minus one means that the login failed.
+        // Here I check the login details. I return the user's place in the list, or -1 if login fails.
         public int Login(string username, string password)
         {
             for (int i = 0; i < users.Count; i++)
@@ -137,13 +137,13 @@ namespace Bank_app
             return false;
         }
 
-        // Login has 
+        // Here I get the user from the place in the list found during login. 
         public User GetUser(int userIndex)
         {
             return users[userIndex];
         }
 
-        // here i look for at least one character that is not a space
+        // Here I check that the text is not empty or made up of only spaces.
         public bool HasText(string text)
         {
             if (text == null || text == "")
@@ -162,7 +162,7 @@ namespace Bank_app
         }
 
 
-        // here i check the role and search the list before creating a user
+        // Here I check the admin, username and password before adding a new user.
         public bool CreateUser(User admin, string username, string password)
         {
             if (admin.IsAdmin == false)
@@ -192,7 +192,7 @@ namespace Bank_app
             return true;
         }
 
-        // The bank's clock moves forward 15 minutes when the admin runs the transfers.
+        // Here I get the time in minutes from the bank's simulated clock.
         public int GetBankMinute()
         {
             return bankMinute;
@@ -203,7 +203,7 @@ namespace Bank_app
             return bankMinute / 1440 + 1;
         }
 
-        // here i validate money using comparison 
+        // Here I check that the amount is above 0, no more than 100000 and has at most two decimal places 
         public bool AmountIsValid(decimal amount)
         {
             if (amount <= 0 || amount > 100000)
@@ -236,7 +236,7 @@ namespace Bank_app
 
         }
 
-        // waiting outgoing transfer reserv money that cannot be spent again 
+        // Here I start with the balance and check transfers that are still waiting. 
         public decimal GetAvailableBalance(BankAccount account)
         {
             decimal available = account.Balance;
@@ -251,10 +251,7 @@ namespace Bank_app
             return available;
         }
 
-        public decimal ConvertMoney(
-    decimal amount,
-    Currency from,
-    Currency to)
+        public decimal ConvertMoney(decimal amount, Currency from, Currency to)
         {
             if (from == to)
             {
@@ -264,12 +261,8 @@ namespace Bank_app
             return -1;
         }
 
-        // Here I check both accounts before putting a transfer in the queue.
-        public bool Transfer(
-            User user,
-            int fromNumber,
-            int toNumber,
-            decimal amount)
+        // Here I check the accounts and amount before putting the transfer in the queue.
+        public bool Transfer(User user, int fromNumber, int toNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false || fromNumber == toNumber)
             {
@@ -293,15 +286,9 @@ namespace Bank_app
                 return false;
             }
 
-            decimal received = ConvertMoney(
-                amount,
-                from.Currency,
-                to.Currency);
+            decimal received = ConvertMoney(amount, from.Currency, to.Currency);
 
-            decimal amountInSek = ConvertMoney(
-                amount,
-                from.Currency,
-                Currency.SEK);
+            decimal amountInSek = ConvertMoney(amount, from.Currency, Currency.SEK);
 
             if (received <= 0 || amountInSek <= 0)
             {
@@ -326,8 +313,7 @@ namespace Bank_app
             return true;
         }
 
-        // Admin advances simulated time and processes the requests that are due.
-        // Here I advance simulated time and process the requests that are due.
+        // Here I let the admin move the bank's simulated clock forward by 15 minutes
         public int ProcessNextQuarter(User admin)
         {
             if (admin.IsAdmin == false)
@@ -382,7 +368,7 @@ namespace Bank_app
 
                 to.Deposit(transaction.ReceivedAmount);
 
-                // Find the loan belonging to this payout.
+                // Here I find the loan for this payment and mark it as paid out.
                 if (transaction.Type == TransactionType.Loan)
                 {
                     foreach (Loan loan in loans)
@@ -401,7 +387,7 @@ namespace Bank_app
             return completed;
         }
 
-        // Here I put a savings account in the same list as normal accounts.
+        // Here I add the new savings account to the list of accounts.
         public bool OpenSavingsAccount(User user, string name, Currency currency)
         {
             if (HasText(name) == false)
@@ -419,7 +405,7 @@ namespace Bank_app
 
         }
 
-        // Here I queue a simulated outside deposit to the user's own account.
+        // Here I put the deposit in the queue. The money is added when the admin runs it.
         public bool Deposit(User user, int accountNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false)
@@ -444,7 +430,7 @@ namespace Bank_app
 
         }
 
-        // Here I collect this user's loans with a loop.
+        // Here I make a list of this user's loans.
         public List<Loan> GetLoans(User user)
         {
             List<Loan> result = new List<Loan>();
@@ -463,14 +449,14 @@ namespace Bank_app
         }
 
 
-        // Five means five percent per year.
+        // Here I return the loan interest rate, which is 5 percent per year.
         public decimal GetLoanPercent(User user)
         {
             return loanPercents[user.CreditRating];
         }
 
 
-        // Here I calculate the remaining allowance.
+        // Here I work out how much more money the user can borrow.
         public decimal GetLoanLimit(User user)
         {
             decimal ownMoney = 0;
@@ -498,12 +484,12 @@ namespace Bank_app
 
             foreach (Loan loan in GetLoans(user))
             {
-                // Waiting and paid-out loans both use the allowance.
+                // Here I count all the user's loans, including loans waiting to be paid out.
                 totalLoans = totalLoans + loan.Amount;
 
                 if (loan.IsPaidOut == true)
                 {
-                    // Borrowed money must not count as the user's own funds.
+                    // Here I take away borrowed money so it does not count as the user's own money.
                     ownMoney = ownMoney - loan.Amount;
                 }
             }
@@ -538,7 +524,7 @@ namespace Bank_app
         }
 
 
-        // Here I check the account and allowance before queuing the payout.
+        // Here I check the account and loan limit before putting the loan payment in the queue.
         public bool RequestLoan(User user, int accountNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false)
@@ -580,7 +566,7 @@ namespace Bank_app
             return true;
         }
 
-        // Here I collect operations involving an account owned by this user.
+        // Here I make a list of transfers, deposits and loan payments for this user's accounts.
         public List<Transaction> GetHistory(User user)
         {
             List<Transaction> result = new List<Transaction>();
@@ -689,6 +675,7 @@ namespace Bank_app
         }
 
         // Here I count completed transfers once each.
+        // Here I count the transfers that have been completed.
         public int GetTransferCount(User admin)
         {
             if (admin.IsAdmin == false)
@@ -700,11 +687,14 @@ namespace Bank_app
 
             foreach (Transaction transaction in transactions)
             {
-                if (transaction.Type == TransactionType.Transfer && transaction.Status == TransactionStatus.Completed)
+                if (transaction.Type == TransactionType.Transfer
+                    && transaction.Status == TransactionStatus.Completed)
                 {
-                    count++;
+                    count = count + 1;
                 }
             }
+
+            return count;
         }
 
         // Here I add the saved SEK amounts for completed transfers.

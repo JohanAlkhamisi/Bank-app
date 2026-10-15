@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Bank_app
 {
-    // here i keep an account and protect its balance with private field
+    // Here I keep the account details and its balance.
     public class BankAccount
     {
         public int Number { get; set; }
@@ -14,7 +14,7 @@ namespace Bank_app
 
         private decimal balance;
 
-        // the getter let other classes read the balance
+        // Here I let other classes read the balance.
         public decimal Balance
         {
             get 
@@ -24,7 +24,7 @@ namespace Bank_app
         }
 
 
-        // here i give the account it starting values 
+        // Here I save the account number, owner, name, currency and starting balance. 
         public BankAccount(int number, int ownerId, string name, Currency currency, decimal startingBalance)
         {
             Number = number;
@@ -35,7 +35,7 @@ namespace Bank_app
         }
 
 
-        // here i check the amount before adding money 
+        // Here I check that the amount is above 0 before adding it to the balance. 
         public bool Deposit(decimal amount)
         {
             if (amount <= 0)
@@ -51,7 +51,7 @@ namespace Bank_app
         }
 
 
-        // here i check the amount and balance before taking money out 
+        // Here I check the amount and that there is enough money before taking it out. 
         public bool Withdraw(decimal amount)
         {
             if (amount <= 0 || amount > balance)
@@ -64,8 +64,8 @@ namespace Bank_app
 
             return true;
         }
-       
-        // A normal account has no savings interest.
+
+        // Here I return 0 because a normal account does not earn interest.
         public virtual decimal CalculateYearlyInterest(decimal amount)
         {
             return 0;

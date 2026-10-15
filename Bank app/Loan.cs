@@ -22,7 +22,7 @@ namespace Bank_app
             IsPaidOut = false;
         }
 
-        // Here I calculate one year's simple interest.
+        // Here I work out the interest on the loan for one year.
         public decimal CalculateYearlyInterest()
         {
             decimal interest = Amount * InterestPercent / 100;

@@ -6,7 +6,7 @@ namespace Bank_app
 {
     public class User
     {
-        // here i keep the details used to identify a user
+        // Here I keep the user's number, username and information about login attempts.
         public int Id { get; set; }
         public string Username { get; set; }
         public bool IsAdmin { get; set; }
@@ -17,7 +17,7 @@ namespace Bank_app
         public CreditRating CreditRating { get; set; }
         private string password;
 
-        // here i give the new user its starting values 
+        // Here I save the new user's details and start with 0 wrong login attempts.
         public User(int id, string username, string password, bool isAdmin)
         {
             Id = id;
@@ -35,7 +35,7 @@ namespace Bank_app
 
         }
 
-        //here i compare the password
+        // Here I check if the entered password matches the saved password.
         public bool CheckPassword(string enteredPassword)
         {
             if (password == enteredPassword)
