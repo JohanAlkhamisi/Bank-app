@@ -118,6 +118,7 @@
                     Console.WriteLine("7. Mina lån");
                     Console.WriteLine("8. Transaktionshistorik");
                     Console.WriteLine("9. Ändra kontaktuppgifter");
+                    Console.WriteLine("10. Mina notifieringar");
                 }
 
                 // Return to the normal console color.
@@ -208,6 +209,10 @@
 
                         case "9":
                             UpdateProfile(user);
+                            break;
+
+                        case "10":
+                            ShowNotifications(user);
                             break;
 
                         default:
@@ -546,6 +551,30 @@
             else
             {
                 Console.WriteLine("Ange en e-postadress med @ och en punkt i domänen, till exempel namn@exempel.se.");
+            }
+        }
+
+        // Here I show the user's pretend emails and SMS messages.
+        private void ShowNotifications(User user)
+        {
+            Console.WriteLine("Här visas simulerade mejl och SMS. Inga riktiga meddelanden skickas.");
+            Console.WriteLine($"Gränsen är över {bank.GetNotificationLimit()} i kontots valuta.");
+
+            List<Notification> notifications = bank.GetNotifications(user);
+
+            if (notifications.Count == 0)
+            {
+                Console.WriteLine("Du har inga notifieringar ännu.");
+            }
+
+            Console.WriteLine("Spara e-post eller telefonnummer under menyval 9 innan transaktionen genomförs.");
+
+            foreach (Notification notification in notifications)
+            {
+                Console.WriteLine($"{notification.CreatedAt:yyyy-MM-dd HH:mm} | Typ: {notification.Channel} | Till: {notification.Address}");
+                Console.WriteLine($"Konto: {notification.AccountNumber} | Transaktion: {notification.TransactionId}");
+                Console.WriteLine(notification.Message);
+                Console.WriteLine();
             }
         }
 

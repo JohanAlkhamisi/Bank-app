@@ -27,7 +27,8 @@ namespace Bank_app
             // ReadLine handles input from a file or another program, including the end of input.
             if (Console.IsInputRedirected == true)
             {
-                string line = Console.ReadLine();
+                // The question mark means that ReadLine can also return null.
+                string? line = Console.ReadLine();
 
                 // Check the real clock and finish payments that are due.
                 bank.ProcessTransactions(DateTime.Now);

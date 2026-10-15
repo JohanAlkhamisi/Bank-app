@@ -16,6 +16,12 @@ namespace Bank_app
         private List<Transaction> transactions = new List<Transaction>();
         private List<Loan> loans = new List<Loan>();
 
+        // These messages stay in the app. No real emails or SMS messages are sent.
+        private List<Notification> notifications = new List<Notification>();
+
+        // A message is created for amounts above 10000 in the account's currency.
+        private decimal notificationLimit = 10000;
+
         // DateTime keeps a real date and time instead of a simulated minute counter.
         private DateTime nextProcessingTime;
 
@@ -415,6 +421,10 @@ namespace Bank_app
                         }
 
                         transaction.Status = TransactionStatus.Completed;
+
+                        // Only a completed payment can create messages.
+                        CreateNotifications(transaction);
+
                         completed = completed + 1;
                     }
                     else
@@ -852,6 +862,91 @@ namespace Bank_app
         public DateTime GetRatesDate()
         {
             return ratesUpdatedOn;
+        }
+
+        // Here I get the amount that a payment must be above to create a message.
+        public decimal GetNotificationLimit()
+        {
+            return notificationLimit;
+        }
+
+        // Here I check the account that paid and the account that received money.
+        private void CreateNotifications(Transaction transaction)
+        {
+            if (transaction.FromAccount != 0)
+            {
+                CreateAccountNotifications(transaction, transaction.FromAccount, transaction.Amount, false);
+            }
+
+            // A deposit or loan only has a receiving account.
+            CreateAccountNotifications(transaction, transaction.ToAccount, transaction.ReceivedAmount, true);
+        }
+
+        // Here I create messages if this account had a payment above the limit.
+        private void CreateAccountNotifications(Transaction transaction, int accountNumber, decimal amount, bool incoming)
+        {
+            if (amount <= notificationLimit)
+            {
+                return;
+            }
+
+            int accountIndex = FindAccountIndex(accountNumber);
+
+            if (accountIndex == -1)
+            {
+                return;
+            }
+
+            BankAccount account = accounts[accountIndex];
+            string message;
+
+            if (incoming == true)
+            {
+                message = "Du har fått " + amount + " " + account.Currency + " till konto " + account.Number + ".";
+            }
+            else
+            {
+                message = amount + " " + account.Currency + " har förts över från konto " + account.Number + ".";
+            }
+
+            // Find the owner of this account before choosing the saved contact details.
+            foreach (User user in users)
+            {
+                if (user.Id == account.OwnerId)
+                {
+                    // Save one pretend email if the owner has an email address.
+                    if (HasText(user.Email) == true)
+                    {
+                        Notification email = new Notification(user.Id, account.Number, transaction.Id, "Email", user.Email, message);
+                        notifications.Add(email);
+                    }
+
+                    // Save one pretend SMS if the owner has a phone number.
+                    if (HasText(user.Phone) == true)
+                    {
+                        Notification sms = new Notification(user.Id, account.Number, transaction.Id, "SMS", user.Phone, message);
+                        notifications.Add(sms);
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        // Here I make a list of only this user's messages.
+        public List<Notification> GetNotifications(User user)
+        {
+            List<Notification> result = new List<Notification>();
+
+            foreach (Notification notification in notifications)
+            {
+                if (notification.UserId == user.Id)
+                {
+                    result.Add(notification);
+                }
+            }
+
+            return result;
         }
 
         // Here I show the admin how many payments are still waiting.
