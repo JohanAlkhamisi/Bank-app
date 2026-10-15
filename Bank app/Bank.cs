@@ -1,27 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Bank_app
 {
+    // Here I keep the users, accounts and the methods that handle money.
     public class Bank
     {
-
-        // Here I keep the users, accounts, transfers and loans while the app is running
+        // The lists keep the data while the app is open.
         private List<User> users = new List<User>();
         private List<BankAccount> accounts = new List<BankAccount>();
+
+        // The oldest waiting payment is checked first.
         private Queue<Transaction> waiting = new Queue<Transaction>();
+
         private List<Transaction> transactions = new List<Transaction>();
         private List<Loan> loans = new List<Loan>();
-        private int bankMinute = 0;
 
+        // DateTime keeps a real date and time instead of a simulated minute counter.
+        private DateTime nextProcessingTime;
+
+        // The empty starting date means the admin has not confirmed any rates yet.
+        private DateTime ratesUpdatedOn = DateTime.MinValue;
+
+        // Each credit category has its own interest percentage.
         private Dictionary<CreditRating, decimal> loanPercents = new Dictionary<CreditRating, decimal>();
+
+        // Each rate says how many SEK one unit of the currency is worth.
         private Dictionary<Currency, decimal> exchangeRates = new Dictionary<Currency, decimal>();
 
-        // Here I add the test users and their first accounts.
+        // Here I add the test users, accounts and starting interest rates.
         public Bank()
         {
+            nextProcessingTime = NextQuarter(DateTime.Now);
+
             users.Add(new User(1, "admin", "Admin123", true));
             users.Add(new User(2, "johan", "johan123", false));
             users.Add(new User(3, "sara", "Sara123", false));
@@ -34,15 +45,12 @@ namespace Bank_app
             exchangeRates.Add(Currency.EUR, 11);
             exchangeRates.Add(Currency.USD, 10);
 
-
             accounts.Add(new BankAccount(1001, 2, "Lönekonto", Currency.SEK, 10000));
             accounts.Add(new BankAccount(1002, 3, "Lönekonto", Currency.SEK, 5000));
             accounts.Add(new BankAccount(1003, 2, "Extra", Currency.SEK, 0));
-
-
         }
 
-        // Here I make a list of this user's accounts.
+        // Here I make a list of only this user's accounts.
         public List<BankAccount> GetAccounts(User user)
         {
             List<BankAccount> result = new List<BankAccount>();
@@ -54,10 +62,11 @@ namespace Bank_app
                     result.Add(account);
                 }
             }
+
             return result;
         }
 
-        // Here I find the account's place in the list. I return -1 if it is missing. 
+        // Here I find the account's place in the list. I return -1 if it is missing.
         public int FindAccountIndex(int accountNumber)
         {
             for (int i = 0; i < accounts.Count; i++)
@@ -67,45 +76,52 @@ namespace Bank_app
                     return i;
                 }
             }
+
             return -1;
         }
 
-        // Here I get the account from its place in the list. The place must be checked first.
+        // Here I get an account using a list position that has already been checked.
         public BankAccount GetAccount(int accountIndex)
         {
             return accounts[accountIndex];
         }
 
-        // Here I create an account with a starting balance of 0 for the logged-in user.
+        // Here I create an account with a new number and a balance of 0.
         public bool OpenAccount(User user, string name, Currency currency)
         {
             if (HasText(name) == false)
             {
                 return false;
             }
+
             BankAccount account = new BankAccount(1001 + accounts.Count, user.Id, name, currency, 0);
 
             accounts.Add(account);
-            return true;
 
+            return true;
         }
 
-        // Here I check the login details. I return the user's place in the list, or -1 if login fails.
+        // Here I check the login details and return the user's place in the list, or -1 if login fails.
         public int Login(string username, string password)
         {
             for (int i = 0; i < users.Count; i++)
             {
                 if (users[i].Username == username)
                 {
-                    if (users[i].Username == username)
+                    if (users[i].IsLocked == true)
                     {
                         return -1;
                     }
+
                     if (users[i].CheckPassword(password) == true)
                     {
                         users[i].FailedAttempts = 0;
                         return i;
                     }
+
+                    // A wrong password adds one failed attempt.
+                    users[i].FailedAttempts = users[i].FailedAttempts + 1;
+
                     if (users[i].FailedAttempts >= 3)
                     {
                         users[i].IsLocked = true;
@@ -114,10 +130,11 @@ namespace Bank_app
                     return -1;
                 }
             }
+
             return -1;
         }
 
-        //here i let admin reset the lock and attemt counter 
+        // Here I let the admin unlock a user and reset the number of wrong login attempts.
         public bool UnlockUser(User admin, string username)
         {
             if (admin.IsAdmin == false)
@@ -131,13 +148,15 @@ namespace Bank_app
                 {
                     user.IsLocked = false;
                     user.FailedAttempts = 0;
+
                     return true;
                 }
             }
+
             return false;
         }
 
-        // Here I get the user from the place in the list found during login. 
+        // Here I get the user from the list position found during login.
         public User GetUser(int userIndex)
         {
             return users[userIndex];
@@ -158,9 +177,9 @@ namespace Bank_app
                     return true;
                 }
             }
+
             return false;
         }
-
 
         // Here I check the admin, username and password before adding a new user.
         public bool CreateUser(User admin, string username, string password)
@@ -189,38 +208,45 @@ namespace Bank_app
             }
 
             users.Add(new User(users.Count + 1, username, password, false));
+
             return true;
         }
 
-        // Here I get the time in minutes from the bank's simulated clock.
-        public int GetBankMinute()
+        // Here I get the real time when the next batch of payments will run.
+        public DateTime GetNextProcessingTime()
         {
-            return bankMinute;
+            return nextProcessingTime;
         }
 
-        public int GetBankDay()
+        // Here I find the next time ending in :00, :15, :30 or :45.
+        private DateTime NextQuarter(DateTime time)
         {
-            return bankMinute / 1440 + 1;
+            // Start at the current whole minute, without seconds.
+            DateTime minute = new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, 0);
+
+            // The remainder tells me how many minutes are left until the next quarter-hour.
+            int minutesToAdd = 15 - time.Minute % 15;
+
+            return minute.AddMinutes(minutesToAdd);
         }
 
-        // Here I check that the amount is above 0, no more than 100000 and has at most two decimal places 
+        // Here I check that the amount is above 0, at most 100000 and has at most two decimal places.
         public bool AmountIsValid(decimal amount)
         {
             if (amount <= 0 || amount > 100000)
             {
                 return false;
             }
+
             if ((amount * 100) % 1 != 0)
             {
                 return false;
             }
+
             return true;
-
-
-
-
         }
 
+        // Here I round the amount to two decimal places using normal maths.
         public decimal RoundMoney(decimal amount)
         {
             decimal cents = amount * 100;
@@ -232,11 +258,11 @@ namespace Bank_app
             {
                 cents = cents + 1;
             }
-            return cents / 100;
 
+            return cents / 100;
         }
 
-        // Here I start with the balance and check transfers that are still waiting. 
+        // Here I subtract waiting transfers so the same money cannot be spent twice.
         public decimal GetAvailableBalance(BankAccount account)
         {
             decimal available = account.Balance;
@@ -245,12 +271,14 @@ namespace Bank_app
             {
                 if (transaction.FromAccount == account.Number)
                 {
-                    available = available + transaction.Amount;
+                    available = available - transaction.Amount;
                 }
             }
+
             return available;
         }
 
+        // Here I change the amount to the other currency using the rates saved for today.
         public decimal ConvertMoney(decimal amount, Currency from, Currency to)
         {
             if (from == to)
@@ -258,10 +286,20 @@ namespace Bank_app
                 return amount;
             }
 
-            return -1;
+            // Foreign currency needs rates that the admin has confirmed today.
+            if (ratesUpdatedOn != DateTime.Today)
+            {
+                return -1;
+            }
+
+            // First change the amount to SEK, then change SEK to the receiving currency.
+            decimal amountInSek = amount * exchangeRates[from];
+            decimal received = amountInSek / exchangeRates[to];
+
+            return RoundMoney(received);
         }
 
-        // Here I check the accounts and amount before putting the transfer in the queue.
+        // Here I check both accounts and put the transfer in the queue for the next quarter-hour.
         public bool Transfer(User user, int fromNumber, int toNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false || fromNumber == toNumber)
@@ -280,14 +318,12 @@ namespace Bank_app
             BankAccount from = accounts[fromIndex];
             BankAccount to = accounts[toIndex];
 
-            if (from.OwnerId != user.Id
-                || amount > GetAvailableBalance(from))
+            if (from.OwnerId != user.Id || amount > GetAvailableBalance(from))
             {
                 return false;
             }
 
             decimal received = ConvertMoney(amount, from.Currency, to.Currency);
-
             decimal amountInSek = ConvertMoney(amount, from.Currency, Currency.SEK);
 
             if (received <= 0 || amountInSek <= 0)
@@ -295,99 +331,106 @@ namespace Bank_app
                 return false;
             }
 
-            Transaction transaction = new Transaction(
-                transactions.Count + 1,
-                user.Id,
-                fromNumber,
-                toNumber,
-                amount,
-                received,
-                amountInSek,
-                TransactionType.Transfer,
-                bankMinute,
-                bankMinute + 15);
+            // Use the real submission time and finish any older batch before adding this request.
+            DateTime createdAt = DateTime.Now;
 
+            ProcessTransactions(createdAt);
+
+            DateTime executeAt = NextQuarter(createdAt);
+
+            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, fromNumber, toNumber, amount, received, amountInSek, TransactionType.Transfer, createdAt, executeAt);
+
+            // The same transaction is saved in the queue and the history list.
             waiting.Enqueue(transaction);
             transactions.Add(transaction);
 
             return true;
         }
 
-        // Here I let the admin move the bank's simulated clock forward by 15 minutes
-        public int ProcessNextQuarter(User admin)
+        // Here I run the waiting payments when their real processing time has arrived.
+        public int ProcessTransactions(DateTime currentTime)
         {
-            if (admin.IsAdmin == false)
-            {
-                return -1;
-            }
-
-            bankMinute = bankMinute + 15;
-
             int completed = 0;
 
-            while (waiting.Count > 0)
+            // The queue is only processed when the real clock reaches the next quarter-hour.
+            if (currentTime >= nextProcessingTime)
             {
-                Transaction transaction = waiting.Peek();
-
-                if (transaction.ExecuteMinute > bankMinute)
+                while (waiting.Count > 0)
                 {
-                    break;
-                }
+                    // Look at the first payment without removing it yet.
+                    Transaction transaction = waiting.Peek();
 
-                transaction = waiting.Dequeue();
-
-                int toIndex = FindAccountIndex(transaction.ToAccount);
-
-                if (toIndex == -1)
-                {
-                    transaction.Status = TransactionStatus.Failed;
-                    continue;
-                }
-
-                BankAccount to = accounts[toIndex];
-
-                if (transaction.FromAccount != 0)
-                {
-                    int fromIndex = FindAccountIndex(
-                        transaction.FromAccount);
-
-                    if (fromIndex == -1)
+                    if (transaction.ExecuteAt > currentTime)
                     {
-                        transaction.Status = TransactionStatus.Failed;
-                        continue;
+                        break;
                     }
 
-                    BankAccount from = accounts[fromIndex];
+                    transaction = waiting.Dequeue();
 
-                    if (from.Withdraw(transaction.Amount) == false)
+                    // A failed check changes this to false.
+                    bool valid = true;
+
+                    int toIndex = FindAccountIndex(transaction.ToAccount);
+
+                    if (toIndex == -1)
                     {
-                        transaction.Status = TransactionStatus.Failed;
-                        continue;
+                        valid = false;
                     }
-                }
 
-                to.Deposit(transaction.ReceivedAmount);
-
-                // Here I find the loan for this payment and mark it as paid out.
-                if (transaction.Type == TransactionType.Loan)
-                {
-                    foreach (Loan loan in loans)
+                    if (valid == true && transaction.FromAccount != 0)
                     {
-                        if (loan.Id == transaction.LoanId)
+                        int fromIndex = FindAccountIndex(transaction.FromAccount);
+
+                        if (fromIndex == -1)
                         {
-                            loan.IsPaidOut = true;
+                            valid = false;
+                        }
+                        else
+                        {
+                            BankAccount from = accounts[fromIndex];
+
+                            if (from.Withdraw(transaction.Amount) == false)
+                            {
+                                valid = false;
+                            }
                         }
                     }
+
+                    if (valid == true)
+                    {
+                        BankAccount to = accounts[toIndex];
+
+                        to.Deposit(transaction.ReceivedAmount);
+
+                        // Find the loan for this payment and mark it as paid out.
+                        if (transaction.Type == TransactionType.Loan)
+                        {
+                            foreach (Loan loan in loans)
+                            {
+                                if (loan.Id == transaction.LoanId)
+                                {
+                                    loan.IsPaidOut = true;
+                                }
+                            }
+                        }
+
+                        transaction.Status = TransactionStatus.Completed;
+                        completed = completed + 1;
+                    }
+                    else
+                    {
+                        transaction.Status = TransactionStatus.Failed;
+                    }
                 }
 
-                transaction.Status = TransactionStatus.Completed;
-                completed++;
+                // After this batch, wait for the next real quarter-hour.
+                nextProcessingTime = NextQuarter(currentTime);
             }
 
             return completed;
         }
 
-        // Here I add the new savings account to the list of accounts.
+        // Here I add the new savings account to the same list as normal accounts.
         public bool OpenSavingsAccount(User user, string name, Currency currency)
         {
             if (HasText(name) == false)
@@ -400,12 +443,9 @@ namespace Bank_app
             accounts.Add(account);
 
             return true;
-
-
-
         }
 
-        // Here I put the deposit in the queue. The money is added when the admin runs it.
+        // Here I put the deposit in the queue. The money is added at the next quarter-hour.
         public bool Deposit(User user, int accountNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false)
@@ -420,14 +460,20 @@ namespace Bank_app
                 return false;
             }
 
+            // Use the real submission time and finish any older batch before adding this request.
+            DateTime createdAt = DateTime.Now;
 
-            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, 0, TransactionType.Deposit, bankMinute, bankMinute + 15);
+            ProcessTransactions(createdAt);
 
+            DateTime executeAt = NextQuarter(createdAt);
+
+            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, 0, TransactionType.Deposit, createdAt, executeAt);
+
+            // The same transaction is saved in the queue and the history list.
             waiting.Enqueue(transaction);
             transactions.Add(transaction);
 
             return true;
-
         }
 
         // Here I make a list of this user's loans.
@@ -440,21 +486,17 @@ namespace Bank_app
                 if (loan.UserId == user.Id)
                 {
                     result.Add(loan);
-
                 }
             }
 
             return result;
-
         }
 
-
-        // Here I return the loan interest rate, which is 5 percent per year.
+        // Here I get the interest rate for the user's credit category.
         public decimal GetLoanPercent(User user)
         {
             return loanPercents[user.CreditRating];
         }
-
 
         // Here I work out how much more money the user can borrow.
         public decimal GetLoanLimit(User user)
@@ -464,7 +506,6 @@ namespace Bank_app
 
             foreach (BankAccount account in GetAccounts(user))
             {
-
                 if (account.Balance > 0)
                 {
                     decimal value = ConvertMoney(account.Balance, account.Currency, Currency.SEK);
@@ -475,21 +516,17 @@ namespace Bank_app
                     }
 
                     ownMoney = ownMoney + value;
-
-
-
                 }
             }
 
-
             foreach (Loan loan in GetLoans(user))
             {
-                // Here I count all the user's loans, including loans waiting to be paid out.
+                // Waiting loans and paid-out loans both reduce how much more the user can borrow.
                 totalLoans = totalLoans + loan.Amount;
 
                 if (loan.IsPaidOut == true)
                 {
-                    // Here I take away borrowed money so it does not count as the user's own money.
+                    // Borrowed money must not count as the user's own money.
                     ownMoney = ownMoney - loan.Amount;
                 }
             }
@@ -502,7 +539,22 @@ namespace Bank_app
 
                     if (targetIndex != -1 && accounts[targetIndex].OwnerId != user.Id)
                     {
-                        ownMoney = ownMoney - transaction.AmountInSek;
+                        int fromIndex = FindAccountIndex(transaction.FromAccount);
+
+                        if (fromIndex == -1)
+                        {
+                            return -1;
+                        }
+
+                        // Use today's SEK value of money already promised to another customer.
+                        decimal reserved = ConvertMoney(transaction.Amount, accounts[fromIndex].Currency, Currency.SEK);
+
+                        if (reserved < 0)
+                        {
+                            return -1;
+                        }
+
+                        ownMoney = ownMoney - reserved;
                     }
                 }
             }
@@ -512,6 +564,7 @@ namespace Bank_app
                 ownMoney = 0;
             }
 
+            // The total loan limit is five times the user's own money, minus loans already taken.
             decimal remaining = ownMoney * 5 - totalLoans;
 
             if (remaining < 0)
@@ -520,11 +573,9 @@ namespace Bank_app
             }
 
             return remaining;
-
         }
 
-
-        // Here I check the account and loan limit before putting the loan payment in the queue.
+        // Here I check the account and loan limit before queuing the loan payment.
         public bool RequestLoan(User user, int accountNumber, decimal amount)
         {
             if (AmountIsValid(amount) == false)
@@ -554,19 +605,28 @@ namespace Bank_app
             }
 
             Loan loan = new Loan(loans.Count + 1, user.Id, amount, GetLoanPercent(user));
+
             loans.Add(loan);
 
+            // Use the real submission time and finish any older batch before adding this request.
+            DateTime createdAt = DateTime.Now;
 
-            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, amount, TransactionType.Loan, bankMinute, bankMinute + 15);
+            ProcessTransactions(createdAt);
+
+            DateTime executeAt = NextQuarter(createdAt);
+
+            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, amount, TransactionType.Loan, createdAt, executeAt);
 
             transaction.LoanId = loan.Id;
 
+            // The same transaction is saved in the queue and the history list.
             waiting.Enqueue(transaction);
             transactions.Add(transaction);
+
             return true;
         }
 
-        // Here I make a list of transfers, deposits and loan payments for this user's accounts.
+        // Here I collect the transfers, deposits and loan payments for this user's accounts.
         public List<Transaction> GetHistory(User user)
         {
             List<Transaction> result = new List<Transaction>();
@@ -576,13 +636,14 @@ namespace Bank_app
                 bool ownsAccount = false;
 
                 int fromIndex = FindAccountIndex(transaction.FromAccount);
-
                 int toIndex = FindAccountIndex(transaction.ToAccount);
 
                 if (fromIndex != -1)
                 {
                     if (accounts[fromIndex].OwnerId == user.Id)
+                    {
                         ownsAccount = true;
+                    }
                 }
 
                 if (toIndex != -1)
@@ -596,52 +657,64 @@ namespace Bank_app
                 if (ownsAccount == true)
                 {
                     result.Add(transaction);
-
                 }
             }
 
             return result;
         }
 
-
+        // Here I check the email address and save the new contact details.
         public bool UpdateProfile(User user, string email, string phone)
         {
+            // These flags keep track of the @ sign and a dot after it.
             bool hasAt = false;
             bool hasDot = false;
 
+            // A failed check changes this to false.
+            bool valid = true;
+
             for (int i = 0; i < email.Length; i++)
             {
+                if (email[i] == ' ')
+                {
+                    valid = false;
+                }
+
                 if (email[i] == '@')
                 {
+                    if (hasAt == true || i == 0 || i == email.Length - 1)
+                    {
+                        valid = false;
+                    }
+
                     hasAt = true;
                 }
 
-                if (email[i] == '.')
+                if (email[i] == '.' && hasAt == true && i > 0 && i < email.Length - 1)
                 {
-                    hasDot = true;
+                    if (email[i - 1] != '@')
+                    {
+                        hasDot = true;
+                    }
                 }
             }
 
-
-
-            if (email != "" && (hasAt == false || hasDot == false))
+            // An empty email removes the saved address. Otherwise its basic format must be valid.
+            if (email != "")
             {
-                return false;
+                if (hasAt == false || hasDot == false || valid == false || email[email.Length - 1] == '.')
+                {
+                    return false;
+                }
             }
 
             user.Email = email;
             user.Phone = phone;
 
             return true;
-
-
-
         }
 
-
-
-        // Here I save the percentage for future loans in a credit category.
-
+        // Here I let the admin change the interest rate for new loans in a credit category.
         public bool SetLoanPercent(User admin, CreditRating rating, decimal percent)
         {
             if (admin.IsAdmin == false || percent < 0 || percent > 100)
@@ -650,17 +723,16 @@ namespace Bank_app
             }
 
             loanPercents[rating] = percent;
+
             return true;
         }
 
-
-        // Here I find the user with a loop and change the credit category.
+        // Here I let the admin change the user's credit category.
         public bool SetCreditRating(User admin, string username, CreditRating rating)
         {
             if (admin.IsAdmin == false)
             {
                 return false;
-
             }
 
             foreach (User user in users)
@@ -668,13 +740,14 @@ namespace Bank_app
                 if (user.Username == username)
                 {
                     user.CreditRating = rating;
+
                     return true;
                 }
             }
+
             return false;
         }
 
-        // Here I count completed transfers once each.
         // Here I count the transfers that have been completed.
         public int GetTransferCount(User admin)
         {
@@ -687,8 +760,7 @@ namespace Bank_app
 
             foreach (Transaction transaction in transactions)
             {
-                if (transaction.Type == TransactionType.Transfer
-                    && transaction.Status == TransactionStatus.Completed)
+                if (transaction.Type == TransactionType.Transfer && transaction.Status == TransactionStatus.Completed)
                 {
                     count = count + 1;
                 }
@@ -718,7 +790,7 @@ namespace Bank_app
             return total;
         }
 
-        // Here I count each account's uses with two normal loops.
+        // Here I find which account appears in the most completed transfers.
         public int GetMostUsedAccount(User admin)
         {
             if (admin.IsAdmin == false)
@@ -735,11 +807,9 @@ namespace Bank_app
 
                 foreach (Transaction transaction in transactions)
                 {
-                    if (transaction.Type == TransactionType.Transfer
-                        && transaction.Status == TransactionStatus.Completed)
+                    if (transaction.Type == TransactionType.Transfer && transaction.Status == TransactionStatus.Completed)
                     {
-                        if (transaction.FromAccount == account.Number
-                            || transaction.ToAccount == account.Number)
+                        if (transaction.FromAccount == account.Number || transaction.ToAccount == account.Number)
                         {
                             count++;
                         }
@@ -756,5 +826,43 @@ namespace Bank_app
             return mostUsedNumber;
         }
 
+        // Here I let the admin save how many SEK one EUR and one USD are worth today.
+        public bool UpdateRates(User admin, decimal euro, decimal dollar)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return false;
+            }
+
+            if (euro < 0.0001m || euro > 1000 || dollar < 0.0001m || dollar > 1000)
+            {
+                return false;
+            }
+
+            exchangeRates[Currency.EUR] = euro;
+            exchangeRates[Currency.USD] = dollar;
+
+            // These rates are valid for the current calendar day.
+            ratesUpdatedOn = DateTime.Today;
+
+            return true;
+        }
+
+        // Here I get the date when the admin last confirmed the exchange rates.
+        public DateTime GetRatesDate()
+        {
+            return ratesUpdatedOn;
+        }
+
+        // Here I show the admin how many payments are still waiting.
+        public int GetPendingCount(User admin)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return 0;
+            }
+
+            return waiting.Count;
+        }
     }
 }

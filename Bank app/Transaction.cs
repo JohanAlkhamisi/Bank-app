@@ -1,33 +1,37 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Security.Principal;
-using System.Text;
 
 namespace Bank_app
 {
-    // Here I keep the details of a transfer, deposit or loan payment.
+    // Here I keep a transfer, deposit or loan payment and when it should run.
     public class Transaction
     {
         public int Id { get; set; }
         public int UserId { get; set; }
+
+        // A source account of 0 means money comes from a deposit or a loan.
         public int FromAccount { get; set; }
+
         public int ToAccount { get; set; }
         public decimal Amount { get; set; }
         public decimal ReceivedAmount { get; set; }
+
+        // Save this SEK value now so later rate changes do not change the transfer statistics.
         public decimal AmountInSek { get; set; }
-        public int CreatedMinute { get; set; }
-        public int ExecuteMinute { get; set; }
+
+        // Save when the payment was entered and the real time when it should run.
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime ExecuteAt { get; set; }
         public TransactionType Type { get; set; }
         public TransactionStatus Status { get; set; }
 
-        // Here I save the loan's number so I can find it when the money is paid out.
+        // The loan number connects a loan payment to the right loan.
         public int LoanId { get; set; }
 
-        // Here I save the payment details and its time in the bank's simulated minutes.
-        public Transaction(int id, int userId, int fromAccount,int toAccount,decimal amount, decimal receivedAmount, decimal amountInSek, TransactionType type, int createdMinute, int executeMinute)
+        // Here I save the payment details and mark the payment as waiting.
+        public Transaction(int id, int userId, int fromAccount, int toAccount, decimal amount, decimal receivedAmount, decimal amountInSek, TransactionType type, DateTime createdAt, DateTime executeAt)
         {
             Id = id;
-            LoanId = 0;
             UserId = userId;
             FromAccount = fromAccount;
             ToAccount = toAccount;
@@ -35,10 +39,10 @@ namespace Bank_app
             ReceivedAmount = receivedAmount;
             AmountInSek = amountInSek;
             Type = type;
-            CreatedMinute = createdMinute;
-            ExecuteMinute = executeMinute;
+            CreatedAt = createdAt;
+            ExecuteAt = executeAt;
             Status = TransactionStatus.Pending;
+            LoanId = 0;
         }
-    
     }
 }

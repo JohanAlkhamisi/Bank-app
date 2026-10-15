@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Bank_app
 {
-    // Here I keep the account details and its balance.
+    // Here I keep an account and control changes to its balance.
     public class BankAccount
     {
         public int Number { get; set; }
@@ -12,19 +11,19 @@ namespace Bank_app
         public string Name { get; set; }
         public Currency Currency { get; set; }
 
+        // Other classes change the balance through Deposit and Withdraw.
         private decimal balance;
 
-        // Here I let other classes read the balance.
+        // Other classes can read the balance here.
         public decimal Balance
         {
-            get 
+            get
             {
                 return balance;
             }
         }
 
-
-        // Here I save the account number, owner, name, currency and starting balance. 
+        // Here I save the account number, owner, name, currency and starting balance.
         public BankAccount(int number, int ownerId, string name, Currency currency, decimal startingBalance)
         {
             Number = number;
@@ -34,30 +33,25 @@ namespace Bank_app
             balance = startingBalance;
         }
 
-
-        // Here I check that the amount is above 0 before adding it to the balance. 
+        // Here I check that the amount is above 0 before adding it to the balance.
         public bool Deposit(decimal amount)
         {
             if (amount <= 0)
             {
                 return false;
-
             }
 
             balance = balance + amount;
 
             return true;
-        
         }
 
-
-        // Here I check the amount and that there is enough money before taking it out. 
+        // Here I check that the amount is above 0 and that the balance is enough.
         public bool Withdraw(decimal amount)
         {
             if (amount <= 0 || amount > balance)
             {
                 return false;
-
             }
 
             balance = balance - amount;
@@ -70,7 +64,5 @@ namespace Bank_app
         {
             return 0;
         }
-
-
     }
 }

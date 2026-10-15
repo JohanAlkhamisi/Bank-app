@@ -2,9 +2,9 @@
 {
     internal class Program
     {
+        // Here I create the menu and start the program.
         static void Main(string[] args)
         {
-            // Here I start the menu.
             Menu menu = new Menu();
             menu.Start();
         }
