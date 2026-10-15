@@ -93,6 +93,9 @@ namespace Bank_app
                     Console.WriteLine("1. Skapa användare");
                     Console.WriteLine("2. Lås upp användare");
                     Console.WriteLine("4. Behandla nästa simulerade kvart");
+                    Console.WriteLine("5. Statistik");
+                    Console.WriteLine("6. Ändra låneränta");
+                    Console.WriteLine("7. Ändra kreditvärdighet");
                 }
                 else
                 {
@@ -104,6 +107,7 @@ namespace Bank_app
                     Console.WriteLine("6. Ansök om lån");
                     Console.WriteLine("7. Mina lån");
                     Console.WriteLine("8. Transaktionshistorik");
+                    Console.WriteLine("9. Ändra kontaktuppgifter");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -128,9 +132,21 @@ namespace Bank_app
                         case "4":
                             ProcessNextQuarter(user);
                             break;
+                        case "5":
+                            ShowStatistics(user);
+                            break;
+
+                        case "6":
+                            SetLoanPercent(user);
+                            break;
+
+                        case "7":
+                            SetCreditRating(user);
+                            break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
                             break;
+
                     }
                 }
                 else
@@ -163,6 +179,9 @@ namespace Bank_app
                             break;
                         case "8":
                             ShowHistory(user);
+                            break;
+                        case "9":
+                            UpdateProfile(user);
                             break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
@@ -494,6 +513,137 @@ namespace Bank_app
             }
         }
 
+        // Here I read and save new contact details.
+        private void UpdateProfile(User user)
+        {
+            Console.WriteLine(
+                $"E-post: {user.Email}. Telefon: {user.Phone}.");
 
+            string email = input.ReadText(
+                "Ny e-post, tomt tar bort: ");
+
+            string phone = input.ReadText(
+                "Nytt telefonnummer, tomt tar bort: ");
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+
+            if (bank.UpdateProfile(user, email, phone) == true)
+            {
+                Console.WriteLine("Uppgifterna uppdaterades.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "E-postadressen behöver @ och en punkt.");
+            }
+        }
+
+        // Here I translate a number into a credit category.
+        private CreditRating ReadCreditRating()
+        {
+            CreditRating rating = CreditRating.Medium;
+            bool valid = false;
+
+            while (valid == false && input.EndOfInput == false)
+            {
+                int choice = input.ReadNumber(
+                    "Kreditvärdighet: 1 låg, 2 medel, 3 hög: ");
+
+                switch (choice)
+                {
+                    case 1:
+                        rating = CreditRating.Low;
+                        valid = true;
+                        break;
+
+                    case 2:
+                        rating = CreditRating.Medium;
+                        valid = true;
+                        break;
+
+                    case 3:
+                        rating = CreditRating.High;
+                        valid = true;
+                        break;
+
+                    default:
+                        Console.WriteLine("Välj 1, 2 eller 3.");
+                        break;
+                }
+            }
+
+            return rating;
+        }
+
+        // Here I read the new percentage for a credit category.
+        private void SetLoanPercent(User admin)
+        {
+            CreditRating rating = ReadCreditRating();
+
+            decimal percent = input.ReadDecimal(
+                "Årsränta i procent: ");
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+
+            if (bank.SetLoanPercent(admin, rating, percent) == true)
+            {
+                Console.WriteLine("Räntan gäller för nya lån.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "Räntan måste vara mellan 0 och 100 procent.");
+            }
+        }
+
+        // Here I read the user and credit category admin wants to change.
+        private void SetCreditRating(User admin)
+        {
+            string username = input.ReadText("Användarnamn: ");
+
+            CreditRating rating = ReadCreditRating();
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+
+            if (bank.SetCreditRating(admin, username, rating) == true)
+            {
+                Console.WriteLine("Kreditvärdigheten uppdaterades.");
+            }
+            else
+            {
+                Console.WriteLine("Användaren finns inte.");
+            }
+        }
+
+        // Here I print the values calculated by the bank.
+        private void ShowStatistics(User admin)
+        {
+            Console.WriteLine(
+                $"Genomförda överföringar: {bank.GetTransferCount(admin)}.");
+
+            Console.WriteLine(
+                $"Totalt överfört: {bank.GetTransferTotal(admin)} SEK.");
+
+            int number = bank.GetMostUsedAccount(admin);
+
+            if (number == 0)
+            {
+                Console.WriteLine(
+                    "Inget konto har en genomförd överföring ännu.");
+            }
+            else
+            {
+                Console.WriteLine($"Mest använt konto: {number}.");
+            }
+        }
     }
 }

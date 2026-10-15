@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Bank_app
@@ -15,12 +16,24 @@ namespace Bank_app
         private List<Loan> loans = new List<Loan>();
         private int bankMinute = 0;
 
+        private Dictionary<CreditRating, decimal> loanPercents =
+    new Dictionary<CreditRating, decimal>();
+
         // here i create the demo users and their starting values
         public Bank()
         {
             users.Add(new User(1, "admin", "Admin123", true));
             users.Add(new User(2, "johan", "johan123", false));
             users.Add(new User(3, "sara", "Sara123", false));
+
+            loanPercents.Add(CreditRating.Low, 8);
+            loanPercents.Add(CreditRating.Medium, 5);
+            loanPercents.Add(CreditRating.High, 3);
+
+            exchangeRates.Add(Currency.SEK, 1);
+            exchangeRates.Add(Currency.EUR, 11);
+            exchangeRates.Add(Currency.USD, 10);
+
 
             accounts.Add(new BankAccount(1001, 2, "Lönekonto", Currency.SEK, 10000));
             accounts.Add(new BankAccount(1002, 3, "Lönekonto", Currency.SEK, 5000));
@@ -72,7 +85,7 @@ namespace Bank_app
             }
             BankAccount account = new BankAccount(1001 + accounts.Count, user.Id, name, currency, 0);
 
-                accounts.Add(account);
+            accounts.Add(account);
             return true;
 
         }
@@ -453,7 +466,7 @@ namespace Bank_app
         // Five means five percent per year.
         public decimal GetLoanPercent(User user)
         {
-            return 5;
+            return loanPercents[user.CreditRating];
         }
 
 
@@ -548,7 +561,7 @@ namespace Bank_app
             }
 
             decimal limit = GetLoanLimit(user);
-            
+
             if (limit < 0 || amount > limit)
             {
                 return false;
@@ -597,11 +610,160 @@ namespace Bank_app
                 if (ownsAccount == true)
                 {
                     result.Add(transaction);
-                        
+
                 }
             }
 
             return result;
+        }
+
+
+        public bool UpdateProfile(User user, string email, string phone)
+        {
+            bool hasAt = false;
+            bool hasDot = false;
+
+            for (int i = 0; i < email.Length; i++)
+            {
+                if (email[i] == '@')
+                {
+                    hasAt = true;
+                }
+
+                if (email[i] == '.')
+                {
+                    hasDot = true;
+                }
+            }
+
+
+
+            if (email != "" && (hasAt == false || hasDot == false))
+            {
+                return false;
+            }
+
+            user.Email = email;
+            user.Phone = phone;
+
+            return true;
+
+
+
+        }
+
+
+
+        // Here I save the percentage for future loans in a credit category.
+
+        public bool SetLoanPercent(User admin, CreditRating rating, decimal percent)
+        {
+            if (admin.IsAdmin == false || percent < 0 || percent > 100)
+            {
+                return false;
+            }
+
+            loanPercents[rating] = percent;
+            return true;
+        }
+
+
+        // Here I find the user with a loop and change the credit category.
+        public bool SetCreditRating(User admin, string username, CreditRating rating)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return false;
+
+            }
+
+            foreach (User user in users)
+            {
+                if (user.Username == username)
+                {
+                    user.CreditRating = rating;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Here I count completed transfers once each.
+        public int GetTransferCount(User admin)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return 0;
+            }
+
+            int count = 0;
+
+            foreach (Transaction transaction in transactions)
+            {
+                if (transaction.Type == TransactionType.Transfer && transaction.Status == TransactionStatus.Completed)
+                {
+                    count++;
+                }
+            }
+        }
+
+        // Here I add the saved SEK amounts for completed transfers.
+        public decimal GetTransferTotal(User admin)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return 0;
+            }
+
+            decimal total = 0;
+
+            foreach (Transaction transaction in transactions)
+            {
+                if (transaction.Type == TransactionType.Transfer && transaction.Status == TransactionStatus.Completed)
+                {
+                    total = total + transaction.AmountInSek;
+                }
+            }
+
+            return total;
+        }
+
+        // Here I count each account's uses with two normal loops.
+        public int GetMostUsedAccount(User admin)
+        {
+            if (admin.IsAdmin == false)
+            {
+                return 0;
+            }
+
+            int mostUsedNumber = 0;
+            int highestCount = 0;
+
+            foreach (BankAccount account in accounts)
+            {
+                int count = 0;
+
+                foreach (Transaction transaction in transactions)
+                {
+                    if (transaction.Type == TransactionType.Transfer
+                        && transaction.Status == TransactionStatus.Completed)
+                    {
+                        if (transaction.FromAccount == account.Number
+                            || transaction.ToAccount == account.Number)
+                        {
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > highestCount)
+                {
+                    highestCount = count;
+                    mostUsedNumber = account.Number;
+                }
+            }
+
+            return mostUsedNumber;
         }
 
     }

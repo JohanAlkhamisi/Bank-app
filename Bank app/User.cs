@@ -12,7 +12,9 @@ namespace Bank_app
         public bool IsAdmin { get; set; }
         public int FailedAttempts { get; set; }
         public bool IsLocked { get; set; }
-        
+        public string Email { get; set; }
+        public string Phone { get; set; }
+        public CreditRating CreditRating { get; set; }
         private string password;
 
         // here i give the new user its starting values 
@@ -24,6 +26,12 @@ namespace Bank_app
             IsAdmin = isAdmin;
             FailedAttempts = 0;
             IsLocked = false;
+
+            Email = "";
+
+            Phone = "";
+
+            CreditRating = CreditRating.Medium;
 
         }
 
