@@ -6,7 +6,7 @@ using System.Text;
 namespace Bank_app
 {
     // here i add the same transaction to the queue and the history 
-    internal class Transaction
+    public class Transaction
     {
         public int Id { get; set; }
         public int UserId { get; set; }

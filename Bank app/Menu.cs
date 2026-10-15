@@ -103,6 +103,7 @@ namespace Bank_app
                     Console.WriteLine("5. Sätt in pengar");
                     Console.WriteLine("6. Ansök om lån");
                     Console.WriteLine("7. Mina lån");
+                    Console.WriteLine("8. Transaktionshistorik");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -159,6 +160,9 @@ namespace Bank_app
 
                         case "7":
                             ShowLoans(user);
+                            break;
+                        case "8":
+                            ShowHistory(user);
                             break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
@@ -432,6 +436,61 @@ namespace Bank_app
                 {
                     Console.WriteLine("Väntar på utbetalning.");
                 }
+            }
+        }
+
+
+        // Here I print the history using normal switches.
+        private void ShowHistory(User user)
+        {
+            List<Transaction> history = bank.GetHistory(user);
+
+            if (history.Count == 0)
+            {
+                Console.WriteLine("Inga transaktioner ännu.");
+            }
+
+            foreach (Transaction transaction in history)
+            {
+                Console.WriteLine($"Transaktion {transaction.Id}. Skapad vid bankminut {transaction.CreatedMinute}.");
+
+                switch (transaction.Type)
+                {
+                    case TransactionType.Transfer:
+                        Console.WriteLine("Överföring.");
+                        break;
+
+                    case TransactionType.Deposit:
+                        Console.WriteLine("Insättning.");
+                        break;
+
+                    case TransactionType.Loan:
+                        Console.WriteLine("Låneutbetalning.");
+                        break;
+
+                }
+
+
+                int toIndex = bank.FindAccountIndex(transaction.ToAccount);
+
+                BankAccount to = bank.GetAccount(toIndex);
+
+                Console.WriteLine($"Från {transaction.FromAccount} till {transaction.ToAccount}. Mottagaren får {transaction.ReceivedAmount} {to.Currency}.");
+
+                switch (transaction.Status)
+                {
+                    case TransactionStatus.Pending:
+                        Console.WriteLine("Väntar.");
+                        break;
+                    case TransactionStatus.Completed:
+                        Console.WriteLine("Genomförd.");
+                        break;
+                    case TransactionStatus.Failed:
+                        Console.WriteLine("Misslyckad.");
+                        break;
+
+                }
+
             }
         }
 

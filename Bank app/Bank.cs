@@ -567,7 +567,42 @@ namespace Bank_app
             return true;
         }
 
+        // Here I collect operations involving an account owned by this user.
+        public List<Transaction> GetHistory(User user)
+        {
+            List<Transaction> result = new List<Transaction>();
 
+            foreach (Transaction transaction in transactions)
+            {
+                bool ownsAccount = false;
+
+                int fromIndex = FindAccountIndex(transaction.FromAccount);
+
+                int toIndex = FindAccountIndex(transaction.ToAccount);
+
+                if (fromIndex != -1)
+                {
+                    if (accounts[fromIndex].OwnerId == user.Id)
+                        ownsAccount = true;
+                }
+
+                if (toIndex != -1)
+                {
+                    if (accounts[toIndex].OwnerId == user.Id)
+                    {
+                        ownsAccount = true;
+                    }
+                }
+
+                if (ownsAccount == true)
+                {
+                    result.Add(transaction);
+                        
+                }
+            }
+
+            return result;
+        }
 
     }
 }
