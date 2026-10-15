@@ -5,7 +5,7 @@ using System.Text;
 namespace Bank_app
 {
     // here i keep an account and protect its balance with private field
-    internal class BankAccount
+    public class BankAccount
     {
         public int Number { get; set; }
         public int OwnerId { get; set; }
@@ -52,7 +52,7 @@ namespace Bank_app
 
 
         // here i check the amount and balance before taking money out 
-        public bool withdraw(decimal amount)
+        public bool Withdraw(decimal amount)
         {
             if (amount <= 0 || amount > balance)
             {

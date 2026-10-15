@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Bank_app
 {
-    internal class User
+    public class User
     {
         // here i keep the details used to identify a user
         public int Id { get; set; }

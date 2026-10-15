@@ -19,12 +19,15 @@ namespace Bank_app
         public int ExecuteMinute { get; set; }
         public TransactionType Type { get; set; }
         public TransactionStatus Status { get; set; }
-
+        
+        // This connects a loan payout to its loan.
+        public int LoanId { get; set; }
 
         // here i use minutes to keep track of time in the bank sim
         public Transaction(int id, int userId, int fromAccount,int toAccount,decimal amount, decimal receivedAmount, decimal amountInSek, TransactionType type, int createdMinute, int executeMinute)
         {
             Id = id;
+            LoanId = 0;
             UserId = userId;
             FromAccount = fromAccount;
             ToAccount = toAccount;

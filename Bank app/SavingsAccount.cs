@@ -1,6 +1,6 @@
 ﻿using Bank_app;
 
-namespace BankApp
+namespace Bank_app
 {
     // A savings account inherits the normal account's data and methods.
     public class SavingsAccount : BankAccount

@@ -1,4 +1,4 @@
-﻿namespace BankApp
+﻿namespace Bank_app
 {
     internal class Program
     {

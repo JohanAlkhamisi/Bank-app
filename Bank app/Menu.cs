@@ -1,7 +1,7 @@
 ﻿using Bank_app;
 using System.Runtime.CompilerServices;
 
-namespace BankApp
+namespace Bank_app
 {
     public class Menu
     {
@@ -83,7 +83,7 @@ namespace BankApp
         }
 
         // here i show the choices for logged in user
-        private void ShowUserMenu()
+        private void ShowUserMenu(User user)
         {
             while (input.EndOfInput == false)
             {
@@ -101,6 +101,8 @@ namespace BankApp
                     Console.WriteLine("3. Överför pengar");
                     Console.WriteLine("4. Öppna sparkonto");
                     Console.WriteLine("5. Sätt in pengar");
+                    Console.WriteLine("6. Ansök om lån");
+                    Console.WriteLine("7. Mina lån");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -150,6 +152,13 @@ namespace BankApp
 
                         case "5":
                             Deposit(user);
+                            break;
+                        case "6":
+                            RequestLoan(user);
+                            break;
+
+                        case "7":
+                            ShowLoans(user);
                             break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
@@ -211,7 +220,7 @@ namespace BankApp
         }
 
         //here i print the accounts returned for the logged in user
-        private void ShowAccount(User user)
+        private void ShowAccounts(User user)
         {
             List<BankAccount> accounts = bank.GetAccounts(user);
 
@@ -348,9 +357,84 @@ namespace BankApp
                     Console.WriteLine("Insättningen väntar till nästa simulerade kvart.");
                 }
             }
-
-
-
         }
+        // Here I show the allowance and interest before confirmation.
+        private void RequestLoan(User user)
+        {
+            decimal limit = bank.GetLoanLimit(user);
+
+            if (limit < 0)
+            {
+                Console.WriteLine(
+                    "Admin måste uppdatera bankdagens valutakurser.");
+                return;
+            }
+
+            Console.WriteLine(
+                $"Du kan låna ytterligare {limit} SEK.");
+
+            ShowAccounts(user);
+
+            int number = input.ReadNumber("Ditt konto i SEK: ");
+            decimal amount = input.ReadDecimal("Lånebelopp i SEK: ");
+
+            if (bank.AmountIsValid(amount) == false
+                || input.EndOfInput == true)
+            {
+                Console.WriteLine("Ogiltigt belopp.");
+                return;
+            }
+
+            decimal percent = bank.GetLoanPercent(user);
+            decimal interest = bank.RoundMoney(amount * percent / 100);
+
+            Console.WriteLine(
+                $"Årsränta: {percent} procent. Beräknad ränta första året: {interest} SEK.");
+
+            string confirm = input.ReadText(
+                "Ansök om lånet? 1 ja, 0 nej: ");
+
+            if (confirm == "1" && input.EndOfInput == false)
+            {
+                if (bank.RequestLoan(user, number, amount) == true)
+                {
+                    Console.WriteLine(
+                        "Lånet registrerades. Pengarna väntar till nästa simulerade kvart.");
+                }
+                else
+                {
+                    Console.WriteLine(
+                        "Kontrollera konto, valuta och lånegräns.");
+                }
+            }
+        }
+
+        // Here I show each loan using a loop and if-else.
+        private void ShowLoans(User user)
+        {
+            List<Loan> loans = bank.GetLoans(user);
+
+            if (loans.Count == 0)
+            {
+                Console.WriteLine("Du har inga lån.");
+            }
+
+            foreach (Loan loan in loans)
+            {
+                Console.WriteLine(
+                    $"Lån {loan.Id}: {loan.Amount} SEK. Årsränta: {loan.InterestPercent} procent.");
+
+                if (loan.IsPaidOut == true)
+                {
+                    Console.WriteLine("Utbetalt.");
+                }
+                else
+                {
+                    Console.WriteLine("Väntar på utbetalning.");
+                }
+            }
+        }
+
+
     }
 }

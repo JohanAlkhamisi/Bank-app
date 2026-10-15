@@ -1,5 +1,4 @@
-﻿using BankApp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -13,6 +12,7 @@ namespace Bank_app
         private List<BankAccount> accounts = new List<BankAccount>();
         private Queue<Transaction> waiting = new Queue<Transaction>();
         private List<Transaction> transactions = new List<Transaction>();
+        private List<Loan> loans = new List<Loan>();
         private int bankMinute = 0;
 
         // here i create the demo users and their starting values
@@ -70,7 +70,7 @@ namespace Bank_app
             {
                 return false;
             }
-            BankAccount account = new BankAccount(1001 + accounts.count, user.Id, name, currency,0)
+            BankAccount account = new BankAccount(1001 + accounts.Count, user.Id, name, currency, 0);
 
                 accounts.Add(account);
             return true;
@@ -202,7 +202,7 @@ namespace Bank_app
                 return false;
             }
             return true;
-        
+
 
 
 
@@ -314,6 +314,7 @@ namespace Bank_app
         }
 
         // Admin advances simulated time and processes the requests that are due.
+        // Here I advance simulated time and process the requests that are due.
         public int ProcessNextQuarter(User admin)
         {
             if (admin.IsAdmin == false)
@@ -368,6 +369,18 @@ namespace Bank_app
 
                 to.Deposit(transaction.ReceivedAmount);
 
+                // Find the loan belonging to this payout.
+                if (transaction.Type == TransactionType.Loan)
+                {
+                    foreach (Loan loan in loans)
+                    {
+                        if (loan.Id == transaction.LoanId)
+                        {
+                            loan.IsPaidOut = true;
+                        }
+                    }
+                }
+
                 transaction.Status = TransactionStatus.Completed;
                 completed++;
             }
@@ -409,7 +422,7 @@ namespace Bank_app
             }
 
 
-            Transaction transaction = new Transaction(transactions.Count + 1,user.Id, 0,accountNumber,amount,amount,0,TransactionType.Deposit,bankMinute,bankMinute + 15);
+            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, 0, TransactionType.Deposit, bankMinute, bankMinute + 15);
 
             waiting.Enqueue(transaction);
             transactions.Add(transaction);
@@ -417,5 +430,144 @@ namespace Bank_app
             return true;
 
         }
+
+        // Here I collect this user's loans with a loop.
+        public List<Loan> GetLoans(User user)
+        {
+            List<Loan> result = new List<Loan>();
+
+            foreach (Loan loan in loans)
+            {
+                if (loan.UserId == user.Id)
+                {
+                    result.Add(loan);
+
+                }
+            }
+
+            return result;
+
+        }
+
+
+        // Five means five percent per year.
+        public decimal GetLoanPercent(User user)
+        {
+            return 5;
+        }
+
+
+        // Here I calculate the remaining allowance.
+        public decimal GetLoanLimit(User user)
+        {
+            decimal ownMoney = 0;
+            decimal totalLoans = 0;
+
+            foreach (BankAccount account in GetAccounts(user))
+            {
+
+                if (account.Balance > 0)
+                {
+                    decimal value = ConvertMoney(account.Balance, account.Currency, Currency.SEK);
+
+                    if (value < 0)
+                    {
+                        return -1;
+                    }
+
+                    ownMoney = ownMoney + value;
+
+
+
+                }
+            }
+
+
+            foreach (Loan loan in GetLoans(user))
+            {
+                // Waiting and paid-out loans both use the allowance.
+                totalLoans = totalLoans + loan.Amount;
+
+                if (loan.IsPaidOut == true)
+                {
+                    // Borrowed money must not count as the user's own funds.
+                    ownMoney = ownMoney - loan.Amount;
+                }
+            }
+
+            foreach (Transaction transaction in waiting)
+            {
+                if (transaction.Type == TransactionType.Transfer && transaction.UserId == user.Id)
+                {
+                    int targetIndex = FindAccountIndex(transaction.ToAccount);
+
+                    if (targetIndex != -1 && accounts[targetIndex].OwnerId != user.Id)
+                    {
+                        ownMoney = ownMoney - transaction.AmountInSek;
+                    }
+                }
+            }
+
+            if (ownMoney < 0)
+            {
+                ownMoney = 0;
+            }
+
+            decimal remaining = ownMoney * 5 - totalLoans;
+
+            if (remaining < 0)
+            {
+                remaining = 0;
+            }
+
+            return remaining;
+
+        }
+
+
+        // Here I check the account and allowance before queuing the payout.
+        public bool RequestLoan(User user, int accountNumber, decimal amount)
+        {
+            if (AmountIsValid(amount) == false)
+            {
+                return false;
+            }
+
+            int accountIndex = FindAccountIndex(accountNumber);
+
+            if (accountIndex == -1)
+            {
+                return false;
+            }
+
+            BankAccount account = accounts[accountIndex];
+
+            if (account.OwnerId != user.Id || account.Currency != Currency.SEK)
+            {
+                return false;
+            }
+
+            decimal limit = GetLoanLimit(user);
+            
+            if (limit < 0 || amount > limit)
+            {
+                return false;
+            }
+
+            Loan loan = new Loan(loans.Count + 1, user.Id, amount, GetLoanPercent(user));
+            loans.Add(loan);
+
+
+            Transaction transaction = new Transaction(transactions.Count + 1, user.Id, 0, accountNumber, amount, amount, amount, TransactionType.Loan, bankMinute, bankMinute + 15);
+
+            transaction.LoanId = loan.Id;
+
+            waiting.Enqueue(transaction);
+            transactions.Add(transaction);
+            return true;
+        }
+
+
+
     }
 }
