@@ -99,6 +99,8 @@ namespace BankApp
                     Console.WriteLine("1. Mina konton");
                     Console.WriteLine("2. Öppna konto");
                     Console.WriteLine("3. Överför pengar");
+                    Console.WriteLine("4. Öppna sparkonto");
+                    Console.WriteLine("5. Sätt in pengar");
                 }
 
                 Console.WriteLine("0. Logga ut");
@@ -142,7 +144,13 @@ namespace BankApp
                         case "3":
                             Transfer(user);
                             break;
+                        case "4":
+                            OpenSavingsAccount(user);
+                            break;
 
+                        case "5":
+                            Deposit(user);
+                            break;
                         default:
                             Console.WriteLine("Ogiltigt menyval.");
                             break;
@@ -280,7 +288,69 @@ namespace BankApp
         }
 
 
+        // Here I read the details for a savings account.
+        private void OpenSavingsAccount(User user)
+        {
+            string name = input.ReadText("Sparkontots namn: ");
+            Currency currency = input.ReadCurrency();
+
+            if (input.EndOfInput == true)
+            {
+                return;
+            }
+
+            if (bank.OpenSavingsAccount(user, name, currency) == true)
+            {
+                Console.WriteLine("Sparkontot skapades. Årsräntan är 2 procent.");
+            }
+            else
+            {
+                Console.WriteLine("Kontot behöver ett namn.");
+            }
+        }
+
+        // Here I calculate interest before asking for confirmation.
+        private void Deposit(User user)
+        {
+            ShowAccounts(user);
+
+            int number = input.ReadNumber("Ditt kontonummer: ");
+
+            decimal amount = input.ReadDecimal("Belopp i kontots valuta: ");
+
+            int index = bank.FindAccountIndex(number);
+
+            if (index == -1 || bank.AmountIsValid(amount) == false)
+            {
+                Console.WriteLine("Ogiltigt konto eller belopp.");
+                return;
+            }
+
+            BankAccount account = bank.GetAccount(index);
+
+            if (account.OwnerId != user.Id)
+            {
+                Console.WriteLine("Du får bara använda dina egna konton.");
+                return;
+            }
+
+            decimal interest = account.CalculateYearlyInterest(amount);
+            interest = bank.RoundMoney(interest);
+
+            Console.WriteLine($"Beräknad ränta på insättningen under ett år: {interest} {account.Currency}.");
+
+            string confirm = input.ReadText("Sätt in pengarna? 1 ja, 0 nej: ");
+
+            if (confirm == "1" && input.EndOfInput == false)
+            {
+                if (bank.Deposit(user, number, amount) == true)
+                {
+                    Console.WriteLine("Insättningen väntar till nästa simulerade kvart.");
+                }
+            }
 
 
+
+        }
     }
 }

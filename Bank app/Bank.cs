@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BankApp;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -374,7 +375,47 @@ namespace Bank_app
             return completed;
         }
 
+        // Here I put a savings account in the same list as normal accounts.
+        public bool OpenSavingsAccount(User user, string name, Currency currency)
+        {
+            if (HasText(name) == false)
+            {
+                return false;
+            }
+
+            SavingsAccount account = new SavingsAccount(1001 + accounts.Count, user.Id, name, currency);
+
+            accounts.Add(account);
+
+            return true;
 
 
+
+        }
+
+        // Here I queue a simulated outside deposit to the user's own account.
+        public bool Deposit(User user, int accountNumber, decimal amount)
+        {
+            if (AmountIsValid(amount) == false)
+            {
+                return false;
+            }
+
+            int accountIndex = FindAccountIndex(accountNumber);
+
+            if (accountIndex == -1 || accounts[accountIndex].OwnerId != user.Id)
+            {
+                return false;
+            }
+
+
+            Transaction transaction = new Transaction(transactions.Count + 1,user.Id, 0,accountNumber,amount,amount,0,TransactionType.Deposit,bankMinute,bankMinute + 15);
+
+            waiting.Enqueue(transaction);
+            transactions.Add(transaction);
+
+            return true;
+
+        }
     }
 }

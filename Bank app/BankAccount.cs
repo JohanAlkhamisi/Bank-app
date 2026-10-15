@@ -64,6 +64,12 @@ namespace Bank_app
 
             return true;
         }
+       
+        // A normal account has no savings interest.
+        public virtual decimal CalculateYearlyInterest(decimal amount)
+        {
+            return 0;
+        }
 
 
     }
